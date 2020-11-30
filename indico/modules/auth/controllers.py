@@ -65,9 +65,14 @@ class RHLogin(RH):
             multipass.set_next_url()
             return multipass.redirect_success()
 
+        sso_redirect = True
+        if 'User-Agent' in request.headers:
+            # Some agents attempt to incorrectly resolve directions internally (#4720)
+            sso_redirect = not any(a in request.headers['User-Agent'] for a in ["ms-office", "Microsoft Office"])
+
         # If we have only one provider, and this provider is external, we go there immediately
         # However, after a failed login we need to show the page to avoid a redirect loop
-        if not session.pop('_multipass_auth_failed', False) and 'provider' not in request.view_args:
+        if not session.pop('_multipass_auth_failed', False) and 'provider' not in request.view_args and sso_redirect:
             single_auth_provider = multipass.single_auth_provider
             if single_auth_provider and single_auth_provider.is_external:
                 multipass.set_next_url()
